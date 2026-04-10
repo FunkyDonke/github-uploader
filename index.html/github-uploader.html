@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Uploader Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07070d;
+  --surface: #0f0f18;
+  --surface2: #13131f;
+  --border: #1a1a2e;
+  --border-bright: #2a2a45;
+  --accent: #7c6af7;
+  --accent-glow: rgba(124,106,247,0.18);
+  --accent2: #4ade80;
+  --accent2-glow: rgba(74,222,128,0.12);
+  --text: #ddddf0;
+  --muted: #5a5a7a;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --folder: #e2a84b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,106,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,106,247,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+
+.app{display:flex;height:100vh;position:relative;z-index:1;}
+
+/* LEFT */
+.left-panel{width:340px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.panel-header{padding:18px 18px 0;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.logo svg{width:20px;height:20px;fill:var(--accent);flex-shrink:0;}
+.logo h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;background:linear-gradient(135deg,#fff 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo .badge{font-size:9px;font-family:'Syne',sans-serif;font-weight:700;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;-webkit-text-fill-color:#fff;letter-spacing:1px;}
+.panel-scroll{flex:1;overflow-y:auto;padding:14px 18px 20px;}
+.panel-scroll::-webkit-scrollbar{width:4px;}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
+
+.section-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:9px;margin-top:16px;display:flex;align-items:center;gap:7px;}
+.section-label:first-child{margin-top:0;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.field{margin-bottom:10px;}
+.field:last-child{margin-bottom:0;}
+label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;}
+
+input[type="text"],input[type="password"]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 11px;outline:none;transition:border-color .2s,box-shadow .2s;}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+input::placeholder{color:var(--muted);}
+.token-row{display:flex;gap:6px;}
+.token-row input{flex:1;}
+.icon-btn{background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--muted);cursor:pointer;padding:0 10px;font-size:13px;transition:all .2s;display:flex;align-items:center;}
+.icon-btn:hover{color:var(--text);border-color:var(--border-bright);}
+.repo-row{display:flex;gap:6px;}
+.repo-row input{flex:1;}
+.load-btn{background:var(--accent);border:none;border-radius:7px;color:#fff;cursor:pointer;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:0 12px;transition:all .2s;white-space:nowrap;}
+.load-btn:hover{background:#9080ff;}
+.load-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.drop-zone{border:2px dashed var(--border-bright);border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:var(--accent-glow);}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-icon{font-size:22px;margin-bottom:5px;}
+.drop-text{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:var(--text);}
+.drop-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+.file-queue{display:none;flex-direction:column;gap:3px;margin-top:8px;}
+.file-queue.show{display:flex;}
+.fq-item{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;}
+.fq-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fq-size{color:var(--muted);font-size:10px;flex-shrink:0;}
+.fq-rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;flex-shrink:0;padding:0 2px;}
+
+.path-row{display:flex;gap:0;}
+.path-prefix{background:var(--border);border:1px solid var(--border);border-right:none;border-radius:7px 0 0 7px;padding:8px 9px;font-size:11px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;}
+.path-row input{border-radius:0 7px 7px 0;border-left:none;}
+.path-row input:focus{z-index:1;position:relative;}
+
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.option-card{border:1px solid var(--border);border-radius:7px;padding:9px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:7px;}
+.option-card:hover{border-color:var(--border-bright);}
+.option-card.selected{border-color:var(--accent);background:var(--accent-glow);}
+.option-card input[type="radio"]{display:none;}
+.option-dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--border-bright);margin-top:2px;flex-shrink:0;transition:all .2s;}
+.option-card.selected .option-dot{background:var(--accent);border-color:var(--accent);}
+.option-title{font-size:11px;font-weight:500;color:var(--text);}
+.option-desc{font-size:10px;color:var(--muted);margin-top:1px;}
+
+.toggle-row{display:flex;align-items:flex-start;gap:10px;justify-content:space-between;}
+.toggle-info{flex:1;}
+.toggle-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.toggle-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+.toggle-desc code{color:var(--accent);}
+.toggle-btn{background:var(--border);border:1px solid var(--border-bright);border-radius:14px;color:var(--muted);cursor:pointer;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 11px;transition:all .2s;flex-shrink:0;}
+.toggle-btn.on{background:rgba(74,222,128,.15);border-color:var(--accent2);color:var(--accent2);}
+.pages-note{display:none;margin-top:8px;padding:7px 11px;background:var(--accent2-glow);border:1px solid rgba(74,222,128,.2);border-radius:7px;font-size:10px;color:var(--accent2);line-height:1.6;}
+.pages-note.show{display:block;}
+.pages-note code{opacity:.9;}
+
+.upload-btn{width:100%;background:linear-gradient(135deg,var(--accent),#5c4ef0);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;padding:12px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px var(--accent-glow);margin-top:12px;}
+.upload-btn:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px);}
+.upload-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.help-note{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.help-note a{color:var(--accent);text-decoration:none;}
+.help-note code{color:var(--accent);}
+
+/* RIGHT */
+.right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.explorer-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.breadcrumb{flex:1;display:flex;align-items:center;gap:4px;font-size:12px;overflow:hidden;flex-wrap:nowrap;}
+.bc-item{color:var(--accent);cursor:pointer;white-space:nowrap;padding:2px 4px;border-radius:4px;transition:background .15s;}
+.bc-item:hover{background:var(--accent-glow);}
+.bc-sep{color:var(--muted);}
+.bc-current{color:var(--text);cursor:default;}
+.bc-current:hover{background:none;}
+.bar-actions{display:flex;gap:5px;flex-shrink:0;}
+.bar-btn{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:10px;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:.5px;padding:5px 9px;transition:all .2s;white-space:nowrap;}
+.bar-btn:hover{color:var(--text);border-color:var(--border-bright);}
+.bar-btn.danger:hover{color:var(--danger);border-color:var(--danger);background:rgba(248,113,113,.07);}
+
+.explorer-body{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.explorer-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12px;text-align:center;padding:40px;}
+.explorer-empty .em-icon{font-size:48px;opacity:.25;}
+
+.split-view{display:flex;flex:1;overflow:hidden;}
+
+.file-tree{width:260px;min-width:200px;overflow-y:auto;border-right:1px solid var(--border);flex-shrink:0;}
+.file-tree::-webkit-scrollbar{width:3px;}
+.file-tree::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
+
+.tree-item{display:flex;align-items:center;gap:7px;padding:6px 14px;cursor:pointer;font-size:12px;transition:background .15s;position:relative;user-select:none;}
+.tree-item:hover{background:var(--surface2);}
+.item-icon{font-size:14px;flex-shrink:0;width:16px;text-align:center;}
+.item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item-size{font-size:10px;color:var(--muted);flex-shrink:0;}
+.item-actions{display:none;gap:3px;flex-shrink:0;}
+.tree-item:hover .item-actions{display:flex;}
+.act-btn{font-size:9px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:4px;border:1px solid;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.act-btn.reupload{color:var(--accent);border-color:var(--accent);background:var(--accent-glow);}
+.act-btn.reupload:hover{background:rgba(124,106,247,.3);}
+.act-btn.delete{color:var(--danger);border-color:var(--danger);background:rgba(248,113,113,.07);}
+.act-btn.delete:hover{background:rgba(248,113,113,.2);}
+.is-folder .item-name{color:var(--folder);}
+
+.code-viewer{flex:1;display:none;flex-direction:column;overflow:hidden;}
+.code-viewer.show{display:flex;}
+.viewer-header{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;}
+.vh-name{flex:1;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vh-size{font-size:10px;color:var(--muted);flex-shrink:0;}
+.vh-close{background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:11px;padding:3px 8px;transition:all .2s;}
+.vh-close:hover{color:var(--text);border-color:var(--border-bright);}
+.code-area{flex:1;overflow:auto;padding:14px 16px;background:var(--bg);}
+.code-area pre{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;color:var(--text);white-space:pre;tab-size:2;}
+.code-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--muted);font-size:12px;text-align:center;height:100%;}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:7px;z-index:1000;}
+.toast{background:var(--surface2);border:1px solid var(--border-bright);border-radius:10px;padding:11px 14px;font-size:12px;max-width:320px;display:flex;align-items:flex-start;gap:9px;animation:toastIn .25s ease;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.toast.success{border-color:var(--accent2);}
+.toast.error{border-color:var(--danger);}
+.toast.loading{border-color:var(--accent);}
+.toast-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
+.toast-body{flex:1;}
+.toast-title{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;}
+.toast.success .toast-title{color:var(--accent2);}
+.toast.error .toast-title{color:var(--danger);}
+.toast.loading .toast-title{color:var(--accent);}
+.toast-detail{font-size:10px;color:var(--muted);margin-top:2px;word-break:break-all;}
+.toast-links{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+.toast-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent2);text-decoration:none;font-size:10px;padding:3px 7px;border:1px solid currentColor;border-radius:4px;transition:all .2s;}
+.toast-link:hover{background:var(--accent2-glow);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface2);border:1px solid var(--border-bright);border-radius:14px;padding:26px;width:380px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:modalIn .2s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:8px;}
+.modal-body{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+.modal-body strong{color:var(--danger);}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;}
+.modal-btn{border-radius:7px;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;transition:all .2s;border:1px solid;}
+.modal-btn.cancel{background:none;border-color:var(--border-bright);color:var(--muted);}
+.modal-btn.cancel:hover{color:var(--text);border-color:var(--text);}
+.modal-btn.confirm-del{background:rgba(248,113,113,.15);border-color:var(--danger);color:var(--danger);}
+.modal-btn.confirm-del:hover{background:rgba(248,113,113,.3);}
+
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
+
+@media(max-width:700px){
+  .app{flex-direction:column;height:auto;}
+  .left-panel{width:100%;max-width:100%;border-right:none;border-bottom:1px solid var(--border);}
+  .right-panel{min-height:400px;}
+  .split-view{flex-direction:column;}
+  .file-tree{width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:260px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ LEFT PANEL ═══ -->
+<div class="left-panel">
+  <div class="panel-header">
+    <div class="logo">
+      <svg viewBox="0 0 98 96"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>
+      <h1>GH Uploader</h1>
+      <span class="badge">PRO</span>
+    </div>
+  </div>
+  <div class="panel-scroll">
+
+    <div class="section-label">Auth</div>
+    <div class="field">
+      <label>Personal Access Token</label>
+      <div class="token-row">
+        <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        <button class="icon-btn" id="toggleToken">👁</button>
+      </div>
+      <p class="help-note"><a href="https://github.com/settings/tokens/new" target="_blank">Generate token</a> — needs <code>repo</code> scope. For Delete Repo, also add <code>delete_repo</code>.</p>
+    </div>
+
+    <div class="section-label">Repository</div>
+    <div class="field">
+      <label>Owner / Username</label>
+      <input type="text" id="ownerInput" placeholder="e.g. funkydonke">
+    </div>
+    <div class="field">
+      <label>Repository Name</label>
+      <div class="repo-row">
+        <input type="text" id="repoInput" placeholder="e.g. NewBooks">
+        <button class="load-btn" id="loadRepoBtn" disabled>LOAD</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Branch</label>
+      <input type="text" id="branchInput" value="main">
+    </div>
+
+    <div class="section-label">Upload Files</div>
+    <div class="field">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" multiple>
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Drop files or entire folder</div>
+        <div class="drop-sub">click to browse · multiple files OK</div>
+      </div>
+      <div class="file-queue" id="fileQueue"></div>
+    </div>
+    <div class="field">
+      <label>Destination Folder in Repo (optional)</label>
+      <div class="path-row">
+        <span class="path-prefix">repo /</span>
+        <input type="text" id="destFolder" placeholder="leave blank for root">
+      </div>
+    </div>
+
+    <div class="section-label">GitHub Pages</div>
+    <div class="field">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Auto-enable Pages</div>
+          <div class="toggle-desc">Sets source to <code>main</code> branch root after upload</div>
+        </div>
+        <button class="toggle-btn" id="pagesToggle" onclick="togglePages()">OFF</button>
+      </div>
+      <div class="pages-note" id="pagesNote">✓ Site live at <code id="pagesUrl">https://owner.github.io/repo/</code></div>
+    </div>
+
+    <div class="section-label">Commit</div>
+    <div class="field">
+      <label>Commit Message</label>
+      <input type="text" id="commitMsg" value="Upload via GH Uploader Pro">
+    </div>
+    <div class="field">
+      <label>If file exists</label>
+      <div class="options-grid">
+        <label class="option-card selected" id="opt-overwrite">
+          <input type="radio" name="existAction" value="overwrite" checked>
+          <div class="option-dot"></div>
+          <div><div class="option-title">Overwrite</div><div class="option-desc">Replace it</div></div>
+        </label>
+        <label class="option-card" id="opt-skip">
+          <input type="radio" name="existAction" value="skip">
+          <div class="option-dot"></div>
+          <div><div class="option-title">Skip</div><div class="option-desc">Keep existing</div></div>
+        </label>
+      </div>
+    </div>
+
+    <button class="upload-btn" id="uploadBtn" disabled>
+      <span id="btnSpinner" style="display:none"><span class="spinner"></span></span>
+      <span id="btnText">↑ Upload to GitHub</span>
+    </button>
+
+  </div>
+</div>
+
+<!-- ═══ RIGHT PANEL ═══ -->
+<div class="right-panel">
+  <div class="explorer-bar">
+    <div class="breadcrumb" id="breadcrumb">
+      <span class="bc-item bc-current">← Enter repo info and click LOAD</span>
+    </div>
+    <div class="bar-actions">
+      <button class="bar-btn" id="refreshBtn">↺ Refresh</button>
+      <button class="bar-btn danger" id="deleteRepoBtn">🗑 Delete Repo</button>
+    </div>
+  </div>
+  <div class="explorer-body">
+    <div class="explorer-empty" id="explorerEmpty">
+      <div class="em-icon">🗂️</div>
+      <div>Enter owner + repo, then click <strong>LOAD</strong><br><span style="font-size:10px;margin-top:4px;display:block;">Files and folders will appear here</span></div>
+    </div>
+    <div class="split-view" id="splitView" style="display:none;">
+      <div class="file-tree" id="fileTree"></div>
+      <div class="code-viewer" id="codeViewer">
+        <div class="viewer-header">
+          <span id="vhIcon" style="font-size:14px;flex-shrink:0;">📄</span>
+          <span class="vh-name" id="vhName">—</span>
+          <span class="vh-size" id="vhSize"></span>
+          <button class="vh-close" onclick="closeViewer()">✕ Close</button>
+        </div>
+        <div class="code-area" id="codeArea">
+          <div class="code-loading">Click a file in the tree to view its content</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Confirm Delete</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm-del" id="modalConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="reuploadInput" style="display:none" multiple>
+
+<script>
+// ── STATE ──
+let token='', owner='', repo='', branch='main', currentPath='';
+let selectedFiles=[];
+let pagesEnabled=false;
+let reuploadTarget=null;
+let modalCallback=null;
+let loadingToast=null;
+
+// ── HELPERS ──
+const ghH = () => ({
+  'Authorization': `Bearer ${token}`,
+  'Accept': 'application/vnd.github+json',
+  'Content-Type': 'application/json',
+  'X-GitHub-Api-Version': '2022-11-28'
+});
+
+const fmtBytes = b => !b ? '' : b<1024 ? b+' B' : b<1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+
+function readB64(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function fileIcon(name, type) {
+  if (type==='dir') return '📁';
+  const e = name.split('.').pop().toLowerCase();
+  return {html:'🌐',htm:'🌐',css:'🎨',js:'⚡',ts:'⚡',jsx:'⚡',tsx:'⚡',json:'📋',md:'📝',
+    txt:'📄',py:'🐍',java:'☕',php:'🐘',rb:'💎',go:'🐹',rs:'🦀',cpp:'⚙️',c:'⚙️',
+    sh:'🔧',yaml:'📋',yml:'📋',xml:'📋',svg:'🖼',png:'🖼',jpg:'🖼',jpeg:'🖼',
+    gif:'🖼',webp:'🖼',pdf:'📕',zip:'📦',mp4:'🎬',mp3:'🎵'}[e] || '📄';
+}
+
+function isText(name) {
+  return /\.(html?|css|jsx?|tsx?|json|md|txt|py|java|php|rb|go|rs|cpp?|h|sh|bash|ya?ml|xml|svg|toml|ini|env|gitignore|lock|conf|cfg|log|csv|sql|graphql|vue|svelte)$/i.test(name);
+}
+
+// ── TOAST ──
+function toast(type, title, detail, links, persist) {
+  const d = document.createElement('div');
+  d.className = `toast ${type}`;
+  const ico = type==='loading' ? '<span class="spinner"></span>' : {success:'✓',error:'✕'}[type]||'•';
+  let lh = '';
+  if (links) links.forEach(l => lh += `<a class="toast-link" href="${l.url}" target="_blank">${l.label}</a>`);
+  d.innerHTML = `<div class="toast-icon">${ico}</div><div class="toast-body"><div class="toast-title">${title}</div>${detail?`<div class="toast-detail">${detail}</div>`:''}${lh?`<div class="toast-links">${lh}</div>`:''}</div>`;
+  document.getElementById('toastContainer').appendChild(d);
+  if (!persist) setTimeout(()=>d.remove(), type==='error'?6000:3500);
+  return d;
+}
+function showL(t,d){if(loadingToast)loadingToast.remove();loadingToast=toast('loading',t,d,null,true);}
+function hideL(){if(loadingToast){loadingToast.remove();loadingToast=null;}}
+
+// ── MODAL ──
+function showModal(title, body, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  modalCallback = onConfirm;
+  document.getElementById('deleteModal').classList.add('show');
+}
+function closeModal() { document.getElementById('deleteModal').classList.remove('show'); modalCallback=null; }
+document.getElementById('modalConfirm').onclick = () => { closeModal(); if(modalCallback) modalCallback(); };
+
+// ── INPUTS ──
+document.getElementById('toggleToken').onclick = () => {
+  const i = document.getElementById('tokenInput');
+  i.type = i.type==='password'?'text':'password';
+};
+
+['tokenInput','ownerInput','repoInput','branchInput'].forEach(id => {
+  document.getElementById(id).addEventListener('input', syncState);
+});
+
+function syncState() {
+  token  = document.getElementById('tokenInput').value.trim();
+  owner  = document.getElementById('ownerInput').value.trim();
+  repo   = document.getElementById('repoInput').value.trim();
+  branch = document.getElementById('branchInput').value.trim() || 'main';
+  document.getElementById('loadRepoBtn').disabled = !(token && owner && repo);
+  updatePagesUrl();
+  checkReady();
+}
+
+document.querySelectorAll('.option-card').forEach(c => {
+  c.onclick = () => { document.querySelectorAll('.option-card').forEach(x=>x.classList.remove('selected')); c.classList.add('selected'); };
+});
+
+function togglePages() {
+  pagesEnabled = !pagesEnabled;
+  const btn = document.getElementById('pagesToggle');
+  btn.textContent = pagesEnabled?'ON':'OFF';
+  btn.classList.toggle('on', pagesEnabled);
+  document.getElementById('pagesNote').classList.toggle('show', pagesEnabled);
+  updatePagesUrl();
+}
+function updatePagesUrl() {
+  document.getElementById('pagesUrl').textContent = `https://${owner||'owner'}.github.io/${repo||'repo'}/`;
+}
+
+// ── FILE QUEUE ──
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  handleDropItems(e.dataTransfer.items||[], e.dataTransfer.files);
+});
+fileInput.addEventListener('change', ()=>{
+  Array.from(fileInput.files).forEach(f=>addQ(f, f.name));
+  fileInput.value='';
+});
+
+async function handleDropItems(items, files) {
+  if (items.length) {
+    for (const item of items) {
+      if (item.kind!=='file') continue;
+      const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+      if (entry?.isDirectory) await readDir(entry, entry.name);
+      else { const f=item.getAsFile(); if(f) addQ(f,f.name); }
+    }
+  } else {
+    Array.from(files).forEach(f=>addQ(f,f.name));
+  }
+}
+
+function readDir(dirEntry, basePath) {
+  return new Promise(resolve => {
+    dirEntry.createReader().readEntries(async entries => {
+      for (const e of entries) {
+        if (e.isDirectory) await readDir(e, basePath+'/'+e.name);
+        else await new Promise(r => e.file(f=>{ addQ(f, basePath+'/'+f.name); r(); }));
+      }
+      resolve();
+    });
+  });
+}
+
+function addQ(file, rel) {
+  rel = rel.replace(/^\//,'');
+  selectedFiles.push({file, rel});
+  renderQ(); checkReady();
+}
+
+function renderQ() {
+  const c = document.getElementById('fileQueue');
+  if (!selectedFiles.length) { c.classList.remove('show'); c.innerHTML=''; return; }
+  c.classList.add('show');
+  c.innerHTML = selectedFiles.map((x,i)=>`
+    <div class="fq-item">
+      <span>${fileIcon(x.file.name,'file')}</span>
+      <span class="fq-name" title="${x.rel}">${x.rel}</span>
+      <span class="fq-size">${fmtBytes(x.file.size)}</span>
+      <button class="fq-rm" onclick="rmQ(${i})">✕</button>
+    </div>`).join('');
+}
+
+function rmQ(i) { selectedFiles.splice(i,1); renderQ(); checkReady(); }
+
+function checkReady() {
+  document.getElementById('uploadBtn').disabled = !(token && owner && repo && selectedFiles.length);
+}
+
+// ── LOAD REPO ──
+document.getElementById('loadRepoBtn').onclick = () => { currentPath=''; loadDir(''); };
+document.getElementById('refreshBtn').onclick = () => { if(repo) loadDir(currentPath); };
+
+async function loadDir(path) {
+  if (!token||!owner||!repo) return;
+  showL('Loading…', `${owner}/${repo}${path?'/'+path:''}`);
+  try {
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {headers:ghH()});
+    if (!r.ok) { const e=await r.json(); throw new Error(e.message||'Failed'); }
+    const items = await r.json();
+    currentPath = path;
+    hideL();
+    renderTree(Array.isArray(items)?items:[items]);
+  } catch(e) { hideL(); toast('error','Load failed',e.message); }
+}
+
+function renderTree(items) {
+  items.sort((a,b) => a.type===b.type ? a.name.localeCompare(b.name) : a.type==='dir'?-1:1);
+
+  // breadcrumb
+  const bc = document.getElementById('breadcrumb');
+  const parts = currentPath ? currentPath.split('/') : [];
+  let crumbs = `<span class="bc-item" onclick="loadDir('')">${repo}</span>`;
+  let built = '';
+  parts.forEach((p,i) => {
+    built += (built?'/':'')+p;
+    const cap = built;
+    crumbs += `<span class="bc-sep">/</span>`;
+    crumbs += i===parts.length-1
+      ? `<span class="bc-item bc-current">${p}</span>`
+      : `<span class="bc-item" onclick="loadDir('${cap}')">${p}</span>`;
+  });
+  bc.innerHTML = crumbs;
+
+  const tree = document.getElementById('fileTree');
+  tree.innerHTML = '';
+
+  if (currentPath) {
+    const back = document.createElement('div');
+    back.className = 'tree-item';
+    back.innerHTML = `<span class="item-icon">⬆</span><span class="item-name" style="color:var(--muted)">..</span>`;
+    const parent = currentPath.includes('/') ? currentPath.split('/').slice(0,-1).join('/') : '';
+    back.onclick = () => loadDir(parent);
+    tree.appendChild(back);
+  }
+
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = `tree-item ${item.type==='dir'?'is-folder':'is-file'}`;
+    div.innerHTML = `
+      <span class="item-icon">${fileIcon(item.name,item.type)}</span>
+      <span class="item-name">${item.name}</span>
+      <span class="item-size">${item.size?fmtBytes(item.size):''}</span>
+      <span class="item-actions">
+        <button class="act-btn reupload">↑ Re-upload</button>
+        <button class="act-btn delete">🗑 Delete</button>
+      </span>`;
+
+    div.onclick = e => {
+      if (e.target.closest('.act-btn')) return;
+      if (item.type==='dir') loadDir(item.path);
+      else openViewer(item);
+    };
+    div.querySelector('.act-btn.reupload').onclick = e => { e.stopPropagation(); startReupload(item); };
+    div.querySelector('.act-btn.delete').onclick = e => { e.stopPropagation(); confirmDel(item); };
+    tree.appendChild(div);
+  });
+
+  document.getElementById('explorerEmpty').style.display = 'none';
+  document.getElementById('splitView').style.display = 'flex';
+}
+
+// ── VIEWER ──
+async function openViewer(item) {
+  const viewer = document.getElementById('codeViewer');
+  const area = document.getElementById('codeArea');
+  viewer.classList.add('show');
+  document.getElementById('vhIcon').textContent = fileIcon(item.name,'file');
+  document.getElementById('vhName').textContent = item.path;
+  document.getElementById('vhSize').textContent = fmtBytes(item.size);
+  area.innerHTML = `<div class="code-loading"><span class="spinner"></span><span>Loading…</span></div>`;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${item.path}?ref=${branch}`, {headers:ghH()});
+    if (!r.ok) throw new Error('Fetch failed');
+    const data = await r.json();
+    const raw = atob(data.content.replace(/\n/g,''));
+    if (isText(item.name)) {
+      area.innerHTML = `<pre>${raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+    } else if (/\.(png|jpe?g|gif|webp|svg|ico)$/i.test(item.name)) {
+      const mime = /\.svg$/i.test(item.name)?'image/svg+xml':'image/'+item.name.split('.').pop();
+      area.innerHTML = `<img src="data:${mime};base64,${data.content.replace(/\n/g,'')}" style="max-width:100%;border-radius:8px;">`;
+    } else {
+      area.innerHTML = `<div class="code-loading">Binary file — cannot preview.<br><a href="${data.download_url}" target="_blank" style="color:var(--accent)">↓ Download</a></div>`;
+    }
+  } catch(e) {
+    area.innerHTML = `<div class="code-loading" style="color:var(--danger)">Error: ${e.message}</div>`;
+  }
+}
+function closeViewer() { document.getElementById('codeViewer').classList.remove('show'); }
+
+// ── RE-UPLOAD ──
+function startReupload(item) {
+  reuploadTarget = item;
+  const inp = document.getElementById('reuploadInput');
+  inp.value = ''; inp.click();
+}
+
+document.getElementById('reuploadInput').onchange = async function() {
+  if (!this.files.length || !reuploadTarget) return;
+  const file = this.files[0];
+  const target = reuploadTarget;
+  reuploadTarget = null;
+  showL('Re-uploading…', target.path);
+  try {
+    const metaR = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${target.path}?ref=${branch}`, {headers:ghH()});
+    const meta = await metaR.json();
+    const b64 = await readB64(file);
+    const msg = document.getElementById('commitMsg').value.trim() || 'Re-upload';
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${target.path}`, {
+      method:'PUT', headers:ghH(),
+      body: JSON.stringify({message:msg, content:b64, sha:meta.sha, branch})
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.message); }
+    hideL(); toast('success','File updated!', target.path);
+    loadDir(currentPath);
+    if (document.getElementById('codeViewer').classList.contains('show')) openViewer({...target, size: file.size});
+  } catch(e) { hideL(); toast('error','Re-upload failed',e.message); }
+};
+
+// ── DELETE ──
+function confirmDel(item) {
+  const isDir = item.type==='dir';
+  showModal(
+    isDir?'Delete Folder?':'Delete File?',
+    `Permanently delete <strong>${item.path}</strong>${isDir?' and all its contents':''}?<br><br>This cannot be undone.`,
+    () => isDir ? delFolderRec(item.path) : delFile(item.path, item.sha)
+  );
+}
+
+async function delFile(path, sha) {
+  showL('Deleting…', path);
+  try {
+    if (!sha) {
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {headers:ghH()});
+      sha = (await r.json()).sha;
+    }
+    const msg = document.getElementById('commitMsg').value.trim() || 'Delete';
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+      method:'DELETE', headers:ghH(), body:JSON.stringify({message:msg, sha, branch})
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.message); }
+    hideL(); toast('success','Deleted!', path);
+    closeViewer(); loadDir(currentPath);
+  } catch(e) { hideL(); toast('error','Delete failed',e.message); }
+}
+
+async function delFolderRec(folderPath) {
+  showL('Deleting folder…', folderPath);
+  try {
+    await delTreeRec(folderPath);
+    hideL(); toast('success','Folder deleted!', folderPath);
+    closeViewer();
+    loadDir(folderPath.includes('/')?folderPath.split('/').slice(0,-1).join('/'):'');
+  } catch(e) { hideL(); toast('error','Delete failed',e.message); }
+}
+
+async function delTreeRec(path) {
+  const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {headers:ghH()});
+  const items = await r.json();
+  const msg = document.getElementById('commitMsg').value.trim() || 'Delete';
+  for (const item of items) {
+    if (item.type==='dir') await delTreeRec(item.path);
+    else await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${item.path}`, {
+      method:'DELETE', headers:ghH(), body:JSON.stringify({message:msg, sha:item.sha, branch})
+    });
+  }
+}
+
+document.getElementById('deleteRepoBtn').onclick = () => {
+  if (!repo) return;
+  showModal('⚠️ Delete Entire Repository?',
+    `Permanently destroy <strong>${owner}/${repo}</strong> including all files, history, and Pages?<br><br><span style="color:var(--warn)">Token needs <code>delete_repo</code> scope.</span>`,
+    deleteRepo);
+};
+
+async function deleteRepo() {
+  showL('Deleting repo…', `${owner}/${repo}`);
+  try {
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {method:'DELETE', headers:ghH()});
+    if (r.status===204) {
+      hideL();
+      toast('success','Repository deleted!',`${owner}/${repo} permanently removed.`);
+      document.getElementById('repoInput').value='';
+      document.getElementById('explorerEmpty').style.display='';
+      document.getElementById('splitView').style.display='none';
+      document.getElementById('breadcrumb').innerHTML=`<span class="bc-item bc-current">← Enter repo info and click LOAD</span>`;
+      syncState();
+    } else {
+      let errMsg = 'HTTP ' + r.status;
+      try { const b=await r.json(); errMsg=b.message||errMsg; } catch(_){}
+      if (r.status===403) errMsg='Permission denied — token needs delete_repo scope.';
+      if (r.status===404) errMsg='Repo not found or no access.';
+      throw new Error(errMsg);
+    }
+  } catch(e) { hideL(); toast('error','Delete repo failed', e.message); }
+}
+
+// ── MAIN UPLOAD ──
+document.getElementById('uploadBtn').onclick = async () => {
+  if (!selectedFiles.length) return;
+  const btn = document.getElementById('uploadBtn');
+  const action = document.querySelector('input[name="existAction"]:checked').value;
+  const msg = document.getElementById('commitMsg').value.trim() || 'Upload';
+  const destF = document.getElementById('destFolder').value.trim().replace(/^\/|\/$/g,'');
+  btn.disabled=true;
+  document.getElementById('btnSpinner').style.display='';
+  document.getElementById('btnText').textContent='Uploading…';
+
+  let uploaded=0, skipped=0, failed=0;
+  try {
+    // Ensure repo exists
+    showL('Checking repo…', `${owner}/${repo}`);
+    const rc = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {headers:ghH()});
+    if (!rc.ok && rc.status===404) {
+      showL('Creating repo…');
+      const cr = await fetch('https://api.github.com/user/repos', {
+        method:'POST', headers:ghH(),
+        body:JSON.stringify({name:repo, private:false, auto_init:true, description:'Created by GH Uploader Pro'})
+      });
+      if (!cr.ok) { const e=await cr.json(); throw new Error('Create: '+e.message); }
+      await new Promise(r=>setTimeout(r,2000));
+    }
+
+    for (let i=0; i<selectedFiles.length; i++) {
+      const {file, rel} = selectedFiles[i];
+      const dest = destF ? `${destF}/${rel}` : rel;
+      showL(`Uploading ${i+1}/${selectedFiles.length}`, dest);
+      try {
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dest}`;
+        let sha=null;
+        const chk = await fetch(apiUrl+`?ref=${branch}`, {headers:ghH()});
+        if (chk.ok) sha = (await chk.json()).sha;
+        if (sha && action==='skip') { skipped++; continue; }
+        const b64 = await readB64(file);
+        const body = {message:msg, content:b64, branch};
+        if (sha) body.sha = sha;
+        const pr = await fetch(apiUrl, {method:'PUT', headers:ghH(), body:JSON.stringify(body)});
+        if (!pr.ok) { const e=await pr.json(); throw new Error(e.message); }
+        uploaded++;
+      } catch(e) { failed++; console.error(rel, e); }
+    }
+
+    // Pages
+    let pUrl=null;
+    if (pagesEnabled) {
+      showL('Enabling Pages…');
+      try {
+        const pb = JSON.stringify({source:{branch,path:'/'}});
+        let pr = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {method:'POST', headers:ghH(), body:pb});
+        if (pr.status===409) pr = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {method:'PUT', headers:ghH(), body:pb});
+        const pd = await pr.json().catch(()=>({}));
+        pUrl = pd.html_url || `https://${owner}.github.io/${repo}/`;
+      } catch { pUrl=`https://${owner}.github.io/${repo}/`; }
+    }
+
+    hideL();
+    const links=[{url:`https://github.com/${owner}/${repo}`,label:'↗ View Repo'}];
+    if (pUrl) links.unshift({url:pUrl,label:'🌐 Live Site'});
+    toast('success','Upload complete!',`✓ ${uploaded} uploaded${skipped?', '+skipped+' skipped':''}${failed?', '+failed+' failed':''}`,links);
+
+    selectedFiles=[]; renderQ();
+    if (repo) loadDir(currentPath);
+  } catch(e) { hideL(); toast('error','Upload failed',e.message); }
+  finally {
+    btn.disabled=false;
+    document.getElementById('btnSpinner').style.display='none';
+    document.getElementById('btnText').textContent='↑ Upload to GitHub';
+    checkReady();
+  }
+};
+
+syncState();
+</script>
+</body>
+</html>
