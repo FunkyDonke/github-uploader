@@ -405,6 +405,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
     <div class="breadcrumb" id="breadcrumb"><span class="bc-item bc-current">← Enter repo &amp; click LOAD</span></div>
     <div class="bar-actions">
       <button class="bar-btn" id="refreshBtn">↺ Refresh</button>
+      <button class="bar-btn" id="gotoRepoBtn" onclick="gotoRepo()">↗ Go to Repo</button>
       <button class="bar-btn danger" id="deleteRepoBtn">🗑 Delete Repo</button>
     </div>
   </div>
@@ -775,6 +776,7 @@ document.getElementById('uploadBtn').onclick=async()=>{
 };
 
 // ══════════════ LOAD REPO / EXPLORER ══════════════
+function gotoRepo(){if(!owner||!repo)return;window.open('https://github.com/'+owner+'/'+repo,'_blank');}
 document.getElementById('loadRepoBtn').onclick=()=>{currentPath='';loadDir('');saveRepo(repo);};
 document.getElementById('refreshBtn').onclick=()=>{if(repo)loadDir(currentPath);};
 
