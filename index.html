@@ -645,13 +645,15 @@ async function loadZip(file){
     const ab=await file.arrayBuffer();
     const jzip=await JSZip.loadAsync(ab);
     zipRawFiles=[];
-    // collect all file entries (not dirs)
+    // Use Object.keys to include hidden files (dot-files) that forEach may skip
     const promises=[];
-    jzip.forEach((relPath,entry)=>{
+    const allKeys = Object.keys(jzip.files);
+    for(const relPath of allKeys){
+      const entry = jzip.files[relPath];
       if(!entry.dir){
         promises.push(entry.async('base64').then(b64=>{zipRawFiles.push({path:relPath,b64});}));
       }
-    });
+    }
     await Promise.all(promises);
     hideL();
 
